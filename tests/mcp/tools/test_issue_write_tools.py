@@ -1,8 +1,15 @@
+import base64
 from unittest.mock import AsyncMock
 
 from mcp.client.session import ClientSession
 
-from mcp_tracker.tracker.proto.types.issues import Issue, IssueTransition, Worklog
+from mcp_tracker.tracker.proto.types.issues import (
+    Issue,
+    IssueAttachment,
+    IssueComment,
+    IssueTransition,
+    Worklog,
+)
 from tests.mcp.conftest import get_tool_result_content
 
 
@@ -440,3 +447,133 @@ class TestIssueDeleteWorklog:
 
         assert result.isError
         mock_issues_protocol.issue_delete_worklog.assert_not_called()
+
+
+class TestIssueAddComment:
+    async def test_adds_comment(
+        self,
+        client_session: ClientSession,
+        mock_issues_protocol: AsyncMock,
+        sample_comment: IssueComment,
+    ) -> None:
+        mock_issues_protocol.issue_add_comment.return_value = sample_comment
+
+        result = await client_session.call_tool(
+            "issue_add_comment",
+            {"issue_id": "TEST-123", "text": "This is a test comment"},
+        )
+
+        assert not result.isError
+        mock_issues_protocol.issue_add_comment.assert_called_once()
+        call_args = mock_issues_protocol.issue_add_comment.call_args
+        assert call_args.args[0] == "TEST-123"
+        assert call_args.args[1] == "This is a test comment"
+        content = get_tool_result_content(result)
+        assert isinstance(content, dict)
+        assert content["id"] == sample_comment.id
+        assert content["text"] == sample_comment.text
+
+    async def test_with_optional_parameters(
+        self,
+        client_session: ClientSession,
+        mock_issues_protocol: AsyncMock,
+        sample_comment: IssueComment,
+    ) -> None:
+        mock_issues_protocol.issue_add_comment.return_value = sample_comment
+
+        result = await client_session.call_tool(
+            "issue_add_comment",
+            {
+                "issue_id": "TEST-123",
+                "text": "Comment with options",
+                "attachment_ids": ["attach-1", "attach-2"],
+                "summonees": ["user1", "user2"],
+                "is_add_to_followers": False,
+            },
+        )
+
+        assert not result.isError
+        mock_issues_protocol.issue_add_comment.assert_called_once()
+        call_kwargs = mock_issues_protocol.issue_add_comment.call_args.kwargs
+        assert call_kwargs["attachment_ids"] == ["attach-1", "attach-2"]
+        assert call_kwargs["summonees"] == ["user1", "user2"]
+        assert call_kwargs["is_add_to_followers"] is False
+        content = get_tool_result_content(result)
+        assert isinstance(content, dict)
+
+    async def test_restricted_queue_raises_error(
+        self,
+        client_session_with_limits: ClientSession,
+        mock_issues_protocol: AsyncMock,
+    ) -> None:
+        result = await client_session_with_limits.call_tool(
+            "issue_add_comment",
+            {"issue_id": "RESTRICTED-123", "text": "Test comment"},
+        )
+
+        assert result.isError
+        mock_issues_protocol.issue_add_comment.assert_not_called()
+
+
+class TestAttachmentUploadTemp:
+    async def test_uploads_attachment(
+        self,
+        client_session: ClientSession,
+        mock_issues_protocol: AsyncMock,
+        sample_attachment: IssueAttachment,
+    ) -> None:
+        mock_issues_protocol.attachment_upload_temp.return_value = sample_attachment
+
+        content_base64 = base64.b64encode(b"test content").decode()
+        result = await client_session.call_tool(
+            "attachment_upload_temp",
+            {"filename": "test.txt", "content_base64": content_base64},
+        )
+
+        assert not result.isError
+        mock_issues_protocol.attachment_upload_temp.assert_called_once()
+        call_args = mock_issues_protocol.attachment_upload_temp.call_args
+        assert call_args.args[0] == "test.txt"
+        assert call_args.args[1] == b"test content"
+        content = get_tool_result_content(result)
+        assert isinstance(content, dict)
+        assert content["id"] == sample_attachment.id
+        assert content["name"] == sample_attachment.name
+
+    async def test_with_mimetype(
+        self,
+        client_session: ClientSession,
+        mock_issues_protocol: AsyncMock,
+        sample_attachment: IssueAttachment,
+    ) -> None:
+        mock_issues_protocol.attachment_upload_temp.return_value = sample_attachment
+
+        content_base64 = base64.b64encode(b"test content").decode()
+        result = await client_session.call_tool(
+            "attachment_upload_temp",
+            {
+                "filename": "test.txt",
+                "content_base64": content_base64,
+                "mimetype": "text/plain",
+            },
+        )
+
+        assert not result.isError
+        mock_issues_protocol.attachment_upload_temp.assert_called_once()
+        call_kwargs = mock_issues_protocol.attachment_upload_temp.call_args.kwargs
+        assert call_kwargs["mimetype"] == "text/plain"
+        content = get_tool_result_content(result)
+        assert isinstance(content, dict)
+
+    async def test_invalid_base64_raises_error(
+        self,
+        client_session: ClientSession,
+        mock_issues_protocol: AsyncMock,
+    ) -> None:
+        result = await client_session.call_tool(
+            "attachment_upload_temp",
+            {"filename": "test.txt", "content_base64": "not-valid-base64!!!"},
+        )
+
+        assert result.isError
+        mock_issues_protocol.attachment_upload_temp.assert_not_called()

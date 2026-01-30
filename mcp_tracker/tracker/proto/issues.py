@@ -29,6 +29,16 @@ class IssueProtocol(Protocol):
     async def issue_get_comments(
         self, issue_id: str, *, auth: YandexAuth | None = None
     ) -> list[IssueComment]: ...
+    async def issue_add_comment(
+        self,
+        issue_id: str,
+        text: str,
+        *,
+        attachment_ids: list[str] | None = None,
+        summonees: list[str] | None = None,
+        is_add_to_followers: bool = True,
+        auth: YandexAuth | None = None,
+    ) -> IssueComment: ...
     async def issues_get_links(
         self, issue_id: str, *, auth: YandexAuth | None = None
     ) -> list[IssueLink]: ...
@@ -135,6 +145,15 @@ class IssueProtocol(Protocol):
         auth: YandexAuth | None = None,
         **kwargs: Any,
     ) -> Issue: ...
+
+    async def attachment_upload_temp(
+        self,
+        filename: str,
+        content: bytes,
+        *,
+        mimetype: str | None = None,
+        auth: YandexAuth | None = None,
+    ) -> IssueAttachment: ...
 
 
 class IssueProtocolWrap(IssueProtocol):

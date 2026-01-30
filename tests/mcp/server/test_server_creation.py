@@ -33,7 +33,7 @@ READ_ONLY_TOOL_NAMES = [
     "user_get_current",
 ]
 
-# Write tool names (5 tools) - only registered when not in read-only mode
+# Write tool names - only registered when not in read-only mode
 WRITE_TOOL_NAMES = [
     "issue_execute_transition",
     "issue_close",
@@ -42,6 +42,8 @@ WRITE_TOOL_NAMES = [
     "issue_add_worklog",
     "issue_update_worklog",
     "issue_delete_worklog",
+    "issue_add_comment",
+    "attachment_upload_temp",
 ]
 
 # All tool names that should be registered in normal mode

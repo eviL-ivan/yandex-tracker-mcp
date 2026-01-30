@@ -104,6 +104,10 @@
       "description": "Fetch all comments for an issue"
     },
     {
+      "name": "issue_add_comment",
+      "description": "Add a comment to an issue with optional attachments and user mentions"
+    },
+    {
       "name": "issue_get_links",
       "description": "Get related issue links"
     },
@@ -126,6 +130,10 @@
     {
       "name": "issue_get_attachments",
       "description": "Get attachments for an issue"
+    },
+    {
+      "name": "attachment_upload_temp",
+      "description": "Upload a temporary file to Yandex Tracker. Returns attachment ID for use in issue_create, issue_update, or issue_add_comment"
     },
     {
       "name": "issue_get_checklist",

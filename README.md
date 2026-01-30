@@ -603,6 +603,15 @@ The server exposes the following tools through the MCP protocol:
   - Parameters: `issue_id` (string)
   - Returns chronological list of comments with metadata
 
+- **`issue_add_comment`**: Add a comment to an issue
+  - Parameters:
+    - `issue_id` (string, required, format: "QUEUE-123"): The issue key
+    - `text` (string, required): Comment text (supports Yandex Tracker markup)
+    - `attachment_ids` (array of strings, optional): IDs of temporary attachments to attach to the comment. Use `attachment_upload_temp` first to upload files
+    - `summonees` (array of strings, optional): User logins to mention/summon in the comment
+    - `is_add_to_followers` (boolean, optional, default: true): Whether to add comment author to issue followers
+  - Returns created comment object with id, text, author, and timestamps
+
 - **`issue_get_links`**: Get related issue links
   - Parameters: `issue_id` (string)
   - Returns links to related, blocked, or duplicate issues
@@ -637,6 +646,14 @@ The server exposes the following tools through the MCP protocol:
 - **`issue_get_attachments`**: Get attachments for an issue
   - Parameters: `issue_id` (string, format: "QUEUE-123")
   - Returns list of attachments with metadata for the specified issue
+
+- **`attachment_upload_temp`**: Upload a temporary file to Yandex Tracker
+  - Parameters:
+    - `filename` (string, required): Name for the uploaded file (e.g., "screenshot.png", "report.pdf")
+    - `content_base64` (string, required): File content encoded as a base64 string
+    - `mimetype` (string, optional): MIME type (e.g., "image/png", "application/pdf"). If not provided, will be guessed from filename
+  - Returns attachment object with ID that can be used in `issue_create`, `issue_update`, or `issue_add_comment` via `attachment_ids` parameter
+  - Maximum file size: 1024 MB
 
 - **`issue_get_checklist`**: Get checklist items of an issue
   - Parameters: `issue_id` (string, format: "QUEUE-123")

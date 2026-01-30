@@ -112,6 +112,25 @@ def make_cached_protocols(
         ) -> list[IssueComment]:
             return await self._original.issue_get_comments(issue_id, auth=auth)
 
+        async def issue_add_comment(
+            self,
+            issue_id: str,
+            text: str,
+            *,
+            attachment_ids: list[str] | None = None,
+            summonees: list[str] | None = None,
+            is_add_to_followers: bool = True,
+            auth: YandexAuth | None = None,
+        ) -> IssueComment:
+            return await self._original.issue_add_comment(
+                issue_id,
+                text,
+                attachment_ids=attachment_ids,
+                summonees=summonees,
+                is_add_to_followers=is_add_to_followers,
+                auth=auth,
+            )
+
         @cached(**cache_config)
         async def issues_find(
             self,
@@ -305,6 +324,21 @@ def make_cached_protocols(
                 version=version,
                 auth=auth,
                 **kwargs,
+            )
+
+        async def attachment_upload_temp(
+            self,
+            filename: str,
+            content: bytes,
+            *,
+            mimetype: str | None = None,
+            auth: YandexAuth | None = None,
+        ) -> IssueAttachment:
+            return await self._original.attachment_upload_temp(
+                filename,
+                content,
+                mimetype=mimetype,
+                auth=auth,
             )
 
     class CachingGlobalDataProtocol(GlobalDataProtocolWrap):

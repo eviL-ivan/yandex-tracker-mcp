@@ -1,5 +1,6 @@
 """Issue write MCP tools (conditionally registered based on read-only mode)."""
 
+import base64
 import datetime
 from typing import Annotated, Any
 
@@ -21,7 +22,13 @@ from mcp_tracker.tracker.proto.types.inputs import (
     IssueUpdateSprint,
     IssueUpdateType,
 )
-from mcp_tracker.tracker.proto.types.issues import Issue, IssueTransition, Worklog
+from mcp_tracker.tracker.proto.types.issues import (
+    Issue,
+    IssueAttachment,
+    IssueComment,
+    IssueTransition,
+    Worklog,
+)
 
 
 def register_issue_write_tools(settings: Settings, mcp: FastMCP[Any]) -> None:
@@ -365,5 +372,80 @@ def register_issue_write_tools(settings: Settings, mcp: FastMCP[Any]) -> None:
         return await ctx.request_context.lifespan_context.issues.issue_delete_worklog(
             issue_id,
             worklog_id,
+            auth=get_yandex_auth(ctx),
+        )
+
+    @mcp.tool(
+        title="Add Comment",
+        description="Add a comment to a Yandex Tracker issue",
+        annotations=ToolAnnotations(readOnlyHint=False),
+    )
+    async def issue_add_comment(
+        ctx: Context[Any, AppContext],
+        issue_id: IssueID,
+        text: Annotated[
+            str,
+            Field(description="Comment text."),
+        ],
+        attachment_ids: Annotated[
+            list[str] | None,
+            Field(
+                description="List of attachment IDs to include in the comment. "
+                "Use attachment_upload_temp to upload files first."
+            ),
+        ] = None,
+        summonees: Annotated[
+            list[str] | None,
+            Field(
+                description="List of user logins or IDs to mention in the comment. "
+                "Mentioned users will receive notifications."
+            ),
+        ] = None,
+        is_add_to_followers: Annotated[
+            bool,
+            Field(
+                description="Whether to add mentioned users (summonees) to issue followers. "
+                "Default is True."
+            ),
+        ] = True,
+    ) -> IssueComment:
+        check_issue_access(settings, issue_id)
+
+        return await ctx.request_context.lifespan_context.issues.issue_add_comment(
+            issue_id,
+            text,
+            attachment_ids=attachment_ids,
+            summonees=summonees,
+            is_add_to_followers=is_add_to_followers,
+            auth=get_yandex_auth(ctx),
+        )
+
+    @mcp.tool(
+        title="Upload Temporary Attachment",
+        description="Upload a file to Yandex Tracker as a temporary attachment. "
+        "Returns an attachment ID that can be used in issue_create, issue_update, or issue_add_comment. "
+        "NOTE: File content must be provided as a base64-encoded string. "
+        "Maximum file size: 1024 MB.",
+        annotations=ToolAnnotations(readOnlyHint=False),
+    )
+    async def attachment_upload_temp(
+        ctx: Context[Any, AppContext],
+        filename: Annotated[
+            str, Field(description="Filename (e.g., 'screenshot.png')")
+        ],
+        content_base64: Annotated[
+            str, Field(description="File content as base64-encoded string")
+        ],
+        mimetype: Annotated[str | None, Field(description="Optional MIME type")] = None,
+    ) -> IssueAttachment:
+        try:
+            content = base64.b64decode(content_base64)
+        except Exception as e:
+            raise ValueError(f"Invalid base64 content: {e}") from e
+
+        return await ctx.request_context.lifespan_context.issues.attachment_upload_temp(
+            filename,
+            content,
+            mimetype=mimetype,
             auth=get_yandex_auth(ctx),
         )

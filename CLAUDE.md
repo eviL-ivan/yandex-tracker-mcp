@@ -28,7 +28,7 @@ uv run mcp-tracker # Run the server
   - `queue.py`: Queue tools (5 read-only tools)
   - `field.py`: Global field/metadata tools (6 read-only tools)
   - `issue_read.py`: Issue read tools (9 read-only tools)
-  - `issue_write.py`: Issue write tools (4 tools, conditional on `tracker_read_only`)
+  - `issue_write.py`: Issue write tools (9 tools, conditional on `tracker_read_only`)
   - `user.py`: User tools (4 read-only tools)
   - `__init__.py`: Exports `register_all_tools()` which orchestrates tool registration
 - **Settings** (`mcp_tracker/settings.py`): Pydantic settings from environment variables

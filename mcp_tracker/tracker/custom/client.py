@@ -7,6 +7,7 @@ from asyncio import CancelledError
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any, Literal
 
+import aiohttp
 import jwt
 import yandexcloud
 from aiohttp import ClientSession, ClientTimeout
@@ -395,6 +396,47 @@ class TrackerClient(QueuesProtocol, IssueProtocol, GlobalDataProtocol, UsersProt
             response.raise_for_status()
             return IssueCommentList.model_validate_json(await response.read()).root
 
+    async def issue_add_comment(
+        self,
+        issue_id: str,
+        text: str,
+        *,
+        attachment_ids: list[str] | None = None,
+        summonees: list[str] | None = None,
+        is_add_to_followers: bool = True,
+        auth: YandexAuth | None = None,
+    ) -> IssueComment:
+        """Add a comment to an issue.
+
+        Args:
+            issue_id: Issue key (e.g., "QUEUE-123")
+            text: Comment text
+            attachment_ids: List of attachment IDs to include in the comment
+            summonees: List of user logins or IDs to mention in the comment
+            is_add_to_followers: Whether to add mentioned users to followers (default: True)
+            auth: Optional auth structure (OAuth/Org) to override client configuration
+        """
+        body: dict[str, Any] = {"text": text}
+        if attachment_ids is not None:
+            body["attachmentIds"] = attachment_ids
+        if summonees is not None:
+            body["summonees"] = summonees
+
+        params: dict[str, str] = {}
+        if not is_add_to_followers:
+            params["isAddToFollowers"] = "false"
+
+        async with self._session.post(
+            f"v2/issues/{issue_id}/comments",
+            headers=await self._build_headers(auth),
+            json=body,
+            params=params if params else None,
+        ) as response:
+            if response.status == 404:
+                raise IssueNotFound(issue_id)
+            response.raise_for_status()
+            return IssueComment.model_validate_json(await response.read())
+
     async def issues_find(
         self,
         query: str,
@@ -780,3 +822,41 @@ class TrackerClient(QueuesProtocol, IssueProtocol, GlobalDataProtocol, UsersProt
                 raise IssueNotFound(issue_id)
             response.raise_for_status()
             return Issue.model_validate_json(await response.read())
+
+    async def attachment_upload_temp(
+        self,
+        filename: str,
+        content: bytes,
+        *,
+        mimetype: str | None = None,
+        auth: YandexAuth | None = None,
+    ) -> IssueAttachment:
+        """Upload a file to Yandex Tracker as a temporary attachment.
+
+        Args:
+            filename: Filename (e.g., 'screenshot.png')
+            content: File content as bytes
+            mimetype: Optional MIME type (defaults to 'application/octet-stream')
+            auth: Optional auth structure (OAuth/Org) to override client configuration
+
+        Returns:
+            IssueAttachment with the uploaded file information including the attachment ID
+        """
+        form = aiohttp.FormData()
+        form.add_field(
+            "file",
+            content,
+            filename=filename,
+            content_type=mimetype or "application/octet-stream",
+        )
+
+        params = {"filename": filename}
+
+        async with self._session.post(
+            "v2/attachments",
+            headers=await self._build_headers(auth),
+            data=form,
+            params=params,
+        ) as response:
+            response.raise_for_status()
+            return IssueAttachment.model_validate_json(await response.read())

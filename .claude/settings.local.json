@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(task)",
+      "Bash(uv run:*)",
+      "Bash(uv run ruff:*)",
+      "Skill(docs)",
+      "Skill(docs:*)"
+    ]
+  }
+}
