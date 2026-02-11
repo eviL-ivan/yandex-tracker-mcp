@@ -1,7 +1,13 @@
 services:
   yandex-tracker-mcp:
-    build: .
-    env_file: .env
-    ports:
-      - "${PORT:-8000}:${PORT:-8000}"
+    image: yandex-tracker-mcp
+    container_name: yandex-tracker-mcp
     restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - TRANSPORT=streamable-http
+      - TRACKER_TOKEN=<token>
+      - TRACKER_ORG_ID=7026646
+    stdin_open: true
+    tty: true
